@@ -1,10 +1,10 @@
 import { MeetingProvider } from "@videosdk.live/react-sdk";
-import { useEffect } from "react";
+import { StrictMode, useEffect } from "react";
 import { useState } from "react";
 import { MeetingAppProvider } from "./MeetingAppContextDef";
 import { MeetingContainer } from "./meeting/MeetingContainer";
 import { LeaveScreen } from "./components/screens/LeaveScreen";
-import { JoiningScreen } from "./components/screens/JoiningScreen"
+import { JoiningScreen } from "./components/screens/JoiningScreen";
 
 function App() {
   const [token, setToken] = useState("");
@@ -16,10 +16,25 @@ function App() {
   const [customVideoStream, setCustomVideoStream] = useState(null)
   const [isMeetingStarted, setMeetingStarted] = useState(false);
   const [isMeetingLeft, setIsMeetingLeft] = useState(false);
+  const [language, setLanguage] = useState("");
+
 
   const isMobile = window.matchMedia(
     "only screen and (max-width: 768px)"
   ).matches;
+
+  // Get meetingId and token from URL params and start meeting
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const meetingIdFromUrl = urlParams.get('meetingId');
+    const tokenFromUrl = urlParams.get('token');
+    
+    if (meetingIdFromUrl && tokenFromUrl) {
+      setMeetingId(meetingIdFromUrl);
+      setToken(tokenFromUrl);
+      setMeetingStarted(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isMobile) {
@@ -31,7 +46,9 @@ function App() {
 
   return (
     <>
-      <MeetingAppProvider>
+      <MeetingAppProvider
+        language={language}
+      >
         {isMeetingStarted ? (
 
           <MeetingProvider
@@ -41,14 +58,23 @@ function App() {
               webcamEnabled: webcamOn,
               name: participantName ? participantName : "TestUser",
               multiStream: true,
-              customCameraVideoTrack: customVideoStream,
-              customMicrophoneAudioTrack: customAudioStream
+              defaultCamera : "environment",
+              // customCameraVideoTrack: customVideoStream,
+              // customMicrophoneAudioTrack: customAudioStream'
+              translationLanguage:"en",
+              speakingLanguage:"en",
+              participantId:participantName,
+              metaData: {
+                participantMode: "agent",
+              },
             }}
             token={token}
             reinitialiseMeetingOnConfigChange={true}
             joinWithoutUserInteraction={true}
           >
             <MeetingContainer
+              token={token}
+              meetingId={meetingId}
               onMeetingLeave={() => {
                 setToken("");
                 setMeetingId("");
@@ -58,6 +84,8 @@ function App() {
                 setMeetingStarted(false);
               }}
               setIsMeetingLeft={setIsMeetingLeft}
+              language={language}
+              setLanguage={setLanguage}
             />
           </MeetingProvider>
 
@@ -68,6 +96,8 @@ function App() {
           <JoiningScreen
             participantName={participantName}
             setParticipantName={setParticipantName}
+            language={language}
+            setLanguage={setLanguage}
             setMeetingId={setMeetingId}
             setToken={setToken}
             micOn={micOn}

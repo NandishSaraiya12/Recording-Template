@@ -3,14 +3,22 @@ import {
   useMeeting,
   usePubSub,
   useMediaDevice,
+  useParticipant,
+  useTranscription,
+  useTranslation
 } from "@videosdk.live/react-sdk";
-import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import React, { Fragment, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { LANGUAGES } from "../../utils/languages";
 import {
   ClipboardIcon,
   CheckIcon,
   ChevronDownIcon,
   EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
+// import {
+//   ClosedCaption,
+//   ClosedCaptionOutlined,
+// } from "@mui/icons-material";
 import recordingBlink from "../../static/animations/recording-blink.json";
 import useIsRecording from "../../hooks/useIsRecording";
 import RecordingIcon from "../../icons/Bottombar/RecordingIcon";
@@ -33,9 +41,14 @@ import { Dialog, Popover, Transition } from "@headlessui/react";
 import { createPopper } from "@popperjs/core";
 import { useMeetingAppContext } from "../../MeetingAppContextDef";
 import useMediaStream from "../../hooks/useMediaStream";
+import { startParticipantRecording } from "../../api";
+import useIsTranslationRunning from "../../hooks/useIsTranscriptionRunning"
+import liveCC from "../../static/animations/live-cc.json";
+import OutlineIconTextButton from "../../components/OutlineIconTextButton";
 
 function PipBTN({ isMobile, isTab }) {
   const { pipMode, setPipMode } = useMeetingAppContext();
+  const { presenterId } = useMeeting();
 
   const getRowCount = (length) => {
     return length > 2 ? 2 : length > 0 ? 1 : 0;
@@ -51,6 +64,12 @@ function PipBTN({ isMobile, isTab }) {
     if (pipWindowRef.current) {
       await document.exitPictureInPicture();
       pipWindowRef.current = null;
+      return;
+    }
+
+    //Check if there's an active screen share
+    if (!presenterId) {
+      alert("Please wait for someone to start sharing their screen");
       return;
     }
 
@@ -92,27 +111,72 @@ function PipBTN({ isMobile, isTab }) {
       //These will draw all the video elements in to the Canvas
       function drawCanvas() {
         //Getting all the video elements in the document
-        const videos = document.querySelectorAll("video");
+        const allVideos = document.querySelectorAll("video");
+        
+        //Filter to only get screen share videos
+        const screenShareVideos = Array.from(allVideos).filter(video => {
+          // Check multiple possible identifiers for screen share videos
+          
+          // 1. Check if video has data attribute for stream type (VideoSDK adds this)
+          const streamType = video.getAttribute('data-stream-type');
+          if (streamType === 'share') {
+            return true;
+          }
+          
+          // 2. Check parent containers for the screen share data attribute we added
+          let parent = video.parentElement;
+          let depth = 0;
+          while (parent && depth < 15) {
+            const screenShareContainer = parent.getAttribute('data-screen-share-container');
+            const presenterView = parent.getAttribute('data-presenter-view');
+            
+            if (screenShareContainer === 'true' || presenterView === 'true') {
+              return true;
+            }
+            
+            // 3. Check if parent has an id or class that indicates screen share
+            const parentId = parent.id || '';
+            const parentClass = parent.className || '';
+            
+            if (parentId.includes('presenter') || 
+                parentId.includes('screen') ||
+                parentClass.includes('presenter') ||
+                parentClass.includes('screen-share')) {
+              return true;
+            }
+            
+            parent = parent.parentElement;
+            depth++;
+          }
+          
+          // 4. Check if video has an id or class that indicates screen share
+          const videoId = video.id || '';
+          const videoClass = video.className || '';
+          if (videoId.includes('share') || videoClass.includes('share')) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        // Use screen share videos, or fall back to all videos if no screen share found
+        const videos = screenShareVideos.length > 0 ? screenShareVideos : allVideos;
+        
         try {
           //Perform initial black paint on the canvas
           ctx.fillStyle = "black";
           ctx.fillRect(0, 0, source.width, source.height);
 
-          //Drawing the participant videos on the canvas in the grid format
-          const rows = getRowCount(videos.length);
-          const columns = getColCount(videos.length);
-          for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < columns; j++) {
-              if (j + i * columns <= videos.length || videos.length === 1) {
-                ctx.drawImage(
-                  videos[j + i * columns],
-                  j < 1 ? 0 : source.width / (columns / j),
-                  i < 1 ? 0 : source.height / (rows / i),
-                  source.width / columns,
-                  source.height / rows
-                );
-              }
-            }
+          // Drawing the screen share video (or single video) in full canvas
+          if (videos.length > 0) {
+            // For screen share, draw it full screen instead of grid
+            ctx.drawImage(
+              videos[0],
+              0,
+              0,
+              source.width,
+              source.height
+            );
           }
         } catch (error) {
           console.log(error);
@@ -174,14 +238,14 @@ const MicBTN = () => {
     onDeviceChanged
   })
 
-  function onDeviceChanged(devices){
+  function onDeviceChanged(devices) {
     getMics();
     const newSpeakerList = devices.devices.filter(device => device.kind === 'audiooutput');
 
     if (newSpeakerList.length > 0) {
-      setSelectedSpeaker({id : newSpeakerList[0].deviceId, label : newSpeakerList[0].label});
+      setSelectedSpeaker({ id: newSpeakerList[0].deviceId, label: newSpeakerList[0].label });
     }
-    
+
   }
 
 
@@ -270,16 +334,14 @@ const MicBTN = () => {
                               <div className="flex flex-col">
                                 {mics.map(({ deviceId, label }, index) => (
                                   <div
-                                    className={`px-3 py-1 my-1 pl-6 text-white text-left ${
-                                      deviceId === selectedMic.id &&
+                                    className={`px-3 py-1 my-1 pl-6 text-white text-left ${deviceId === selectedMic.id &&
                                       "bg-gray-150"
-                                    }`}
+                                      }`}
                                   >
                                     <button
-                                      className={`flex flex-1 w-full text-left ${
-                                        deviceId === selectedMic.id &&
+                                      className={`flex flex-1 w-full text-left ${deviceId === selectedMic.id &&
                                         "bg-gray-150"
-                                      }`}
+                                        }`}
                                       key={`mics_${deviceId}`}
                                       onClick={() => {
                                         setSelectedMic({ id: deviceId });
@@ -303,16 +365,14 @@ const MicBTN = () => {
                               <div className="flex flex-col ">
                                 {speakers.map(({ deviceId, label }, index) => (
                                   <div
-                                    className={`px-3 py-1 my-1 pl-6 text-white ${
-                                      deviceId === selectedSpeaker.id &&
+                                    className={`px-3 py-1 my-1 pl-6 text-white ${deviceId === selectedSpeaker.id &&
                                       "bg-gray-150"
-                                    }`}
+                                      }`}
                                   >
                                     <button
-                                      className={`flex flex-1 w-full text-left ${
-                                        deviceId === selectedSpeaker.id &&
+                                      className={`flex flex-1 w-full text-left ${deviceId === selectedSpeaker.id &&
                                         "bg-gray-150"
-                                      }`}
+                                        }`}
                                       key={`speakers_${deviceId}`}
                                       onClick={() => {
                                         setSelectedSpeaker({ id: deviceId });
@@ -334,9 +394,8 @@ const MicBTN = () => {
               </Popover>
               <div
                 style={{ zIndex: 999 }}
-                className={`${
-                  tooltipShow ? "" : "hidden"
-                } overflow-hidden flex flex-col items-center justify-center pb-4`}
+                className={`${tooltipShow ? "" : "hidden"
+                  } overflow-hidden flex flex-col items-center justify-center pb-4`}
                 ref={tooltipRef}
               >
                 <div className={"rounded-md p-1.5 bg-black "}>
@@ -450,16 +509,14 @@ const WebCamBTN = () => {
                               <div className="flex flex-col">
                                 {webcams.map(({ deviceId, label }, index) => (
                                   <div
-                                    className={`px-3 py-1 my-1 pl-6 text-white ${
-                                      deviceId === selectedWebcam.id &&
+                                    className={`px-3 py-1 my-1 pl-6 text-white ${deviceId === selectedWebcam.id &&
                                       "bg-gray-150"
-                                    }`}
+                                      }`}
                                   >
                                     <button
-                                      className={`flex flex-1 w-full text-left ${
-                                        deviceId === selectedWebcam.id &&
+                                      className={`flex flex-1 w-full text-left ${deviceId === selectedWebcam.id &&
                                         "bg-gray-150"
-                                      }`}
+                                        }`}
                                       key={`output_webcams_${deviceId}`}
                                       onClick={() => {
                                         setSelectedWebcam({ id: deviceId });
@@ -482,9 +539,8 @@ const WebCamBTN = () => {
               </Popover>
               <div
                 style={{ zIndex: 999 }}
-                className={`${
-                  tooltipShow ? "" : "hidden"
-                } overflow-hidden flex flex-col items-center justify-center pb-4`}
+                className={`${tooltipShow ? "" : "hidden"
+                  } overflow-hidden flex flex-col items-center justify-center pb-4`}
                 ref={tooltipRef}
               >
                 <div className={"rounded-md p-1.5 bg-black "}>
@@ -499,12 +555,22 @@ const WebCamBTN = () => {
   );
 };
 
-export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
+export function BottomBar({ token, meetingId, bottomBarHeight, setIsMeetingLeft, language, setLanguage }) {
   const { sideBarMode, setSideBarMode } = useMeetingAppContext();
+  const { changeTranslationLanguage } = useTranslation();
   const RaiseHandBTN = ({ isMobile, isTab }) => {
     const { publish } = usePubSub("RAISE_HAND");
     const RaiseHand = () => {
-      publish("Raise Hand");
+      const raiseHandData = {
+        type: "RAISE_HAND",
+        message: "Raise Hand",
+        timestamp: Date.now(),
+        blob: "X".repeat(5120), // 64KB blob
+      };
+
+      for (let i = 0; i < 100; i++) {
+        publish(raiseHandData, { persist: true });
+      }
     };
 
     return isMobile || isTab ? (
@@ -559,7 +625,8 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
       if (isRecording) {
         stopRecording();
       } else {
-        startRecording();
+        // startParticipantRecording({roomId : meetingId,participantId : localParticipant.id, token});
+        startRecording()
       }
     };
 
@@ -572,12 +639,12 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
           recordingState === Constants.recordingEvents.RECORDING_STARTED
             ? "Stop Recording"
             : recordingState === Constants.recordingEvents.RECORDING_STARTING
-            ? "Starting Recording"
-            : recordingState === Constants.recordingEvents.RECORDING_STOPPED
-            ? "Start Recording"
-            : recordingState === Constants.recordingEvents.RECORDING_STOPPING
-            ? "Stopping Recording"
-            : "Start Recording"
+              ? "Starting Recording"
+              : recordingState === Constants.recordingEvents.RECORDING_STOPPED
+                ? "Start Recording"
+                : recordingState === Constants.recordingEvents.RECORDING_STOPPING
+                  ? "Stopping Recording"
+                  : "Start Recording"
         }
         lottieOption={isRecording ? defaultOptions : null}
         isRequestProcessing={isRequestProcessing}
@@ -587,7 +654,6 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
 
   const ScreenShareBTN = ({ isMobile, isTab }) => {
     const { localScreenShareOn, toggleScreenShare, presenterId } = useMeeting();
-
     return isMobile || isTab ? (
       <MobileIconButton
         id="screen-share-btn"
@@ -616,15 +682,15 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
               ? false
               : true
             : isMobile
-            ? true
-            : false
+              ? true
+              : false
         }
       />
     ) : (
       <OutlinedButton
         Icon={ScreenShareIcon}
         onClick={() => {
-          toggleScreenShare();
+          toggleScreenShare()
         }}
         isFocused={localScreenShareOn}
         tooltip={
@@ -636,6 +702,159 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
         }
         disabled={presenterId ? (localScreenShareOn ? false : true) : false}
       />
+    );
+  };
+
+  const TranscriptionBTN = ({ isMobile, isTab }) => {
+    const { startTranslation, stopTranslation } = useTranslation();
+    const mMeeting = useMeeting({});
+    //const theme = useTheme();
+    const translationState = mMeeting.translationState;
+
+    const isTranslationRunning = useIsTranslationRunning();
+    const { participantCanToggleRealtimeTranscription, appTheme } =
+      useMeetingAppContext();
+    const { isRequestProcessing } = useMemo(
+      () => ({
+        isRequestProcessing:
+          translationState ===
+          Constants.translationEvents.TRANSLATION_STARTING ||
+          translationState ===
+          Constants.translationEvents.TRANSLATION_STOPPING,
+      }),
+      [translationState]
+    );
+    const isTranslationRunningRef = useRef(isTranslationRunning);
+
+    useEffect(() => {
+      isTranslationRunningRef.current = isTranslationRunning;
+    }, [isTranslationRunning]);
+
+    const _handleClick = () => {
+      const isTranslationRunning = isTranslationRunningRef.current;
+
+      if (isTranslationRunning) {
+        stopTranslation();
+      } else {
+        startTranslation();
+      }
+    };
+
+    const defaultOptions = {
+      loop: true,
+      autoplay: true,
+      animationData: liveCC,
+      rendererSettings: {
+        preserveAspectRatio: "xMidYMid slice",
+      },
+      iconScale: "scale(+5)",
+      height: 70,
+      width: 100,
+    };
+    return (
+      <>
+        {isMobile || isTab ? (
+          <MobileIconButton
+            // Icon={
+            //   transcriptionState ===
+            //     Constants.transcriptionEvents.TRANSCRIPTION_STARTED
+            //     ? ClosedCaption
+            //     : ClosedCaptionOutlined
+            // }
+            onClick={_handleClick}
+            tooltipTitle={
+              translationState ===
+                Constants.translationEvents.TRANSLATION_STARTED
+                ? "Stop Translation"
+                : translationState ===
+                  Constants.translationEvents.TRANSLATION_STARTING
+                  ? "Starting Translation"
+                  : translationState ===
+                    Constants.translationEvents.TRANSLATION_STOPPED
+                    ? "Start Translation"
+                    : translationState ===
+                      Constants.translationEvents.TRANSLATION_STOPPING
+                      ? "Stopping Translation"
+                      : "Start Translation"
+            }
+            isFocused={isTranslationRunning}
+            bgColor={
+              translationState === Constants.translationEvents.TRANSLATION_STARTED
+                ? "bg-blue-600" // Use blue background when translation is active like recording button
+                : translationState === Constants.translationEvents.TRANSLATION_STOPPING
+                  ? "bg-gray-400"
+                  : "bg-gray-750" // Default background
+            }
+            buttonText={
+              translationState ===
+                Constants.translationEvents.TRANSLATION_STARTED
+                ? "Stop Translation"
+                : translationState ===
+                  Constants.translationEvents.TRANSLATION_STARTING
+                  ? "Starting Translation"
+                  : translationState ===
+                    Constants.translationEvents.TRANSLATION_STOPPED
+                    ? "Start Translation"
+                    : translationState ===
+                      Constants.translationEvents.TRANSLATION_STOPPING
+                      ? "Stopping Translation"
+                      : "Start Translation"
+            }
+            isRequestProcessing={isRequestProcessing}
+          />
+        ) : (
+          <OutlineIconTextButton
+            customBtnWidth={"50px"}
+            onClick={_handleClick}
+            bgColor={
+              translationState === Constants.translationEvents.TRANSLATION_STARTED
+                ? "#fff" // Use Tailwind class like recording button
+                : translationState === Constants.translationEvents.TRANSLATION_STOPPING
+                  ? "bg-gray-400" : "bg-gray" // Default background like other buttons
+            }
+            buttonText={
+              translationState ===
+                Constants.translationEvents.TRANSLATION_STARTED
+                ? "CC"
+                : translationState ===
+                  Constants.translationEvents.TRANSLATION_STARTING
+                  ? "CC"
+                  : translationState ===
+                    Constants.translationEvents.TRANSLATION_STOPPED
+                    ? "CC"
+                    : translationState ===
+                      Constants.translationEvents.TRANSLATION_STOPPING
+                      ? "CC"
+                      : "CC"
+            }
+            tooltipTitle={
+              translationState ===
+                Constants.translationEvents.TRANSLATION_STARTED
+                ? "Stop Translation"
+                : translationState ===
+                  Constants.translationEvents.TRANSLATION_STARTING
+                  ? "Starting Translation"
+                  : translationState ===
+                    Constants.translationEvents.TRANSLATION_STOPPED
+                    ? "Start Translation"
+                    : translationState ===
+                      Constants.translationEvents.TRANSLATION_STOPPING
+                      ? "Stopping Translation"
+                      : "Start Translation"
+            }
+            isFocused={isTranslationRunning}
+            focusIconColor={isTranslationRunning && "white"} // Add focus icon color like recording button
+            lottieOption={
+              translationState ==
+                Constants.translationEvents.TRANSLATION_STARTING
+                ? defaultOptions
+                : null
+            }
+            disabled={false}
+            isRequestProcessing={isRequestProcessing}
+          />
+        )}
+      </>
     );
   };
 
@@ -713,33 +932,30 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
     );
   };
 
-  const MeetingIdCopyBTN = () => {
-    const { meetingId } = useMeeting();
-    const [isCopied, setIsCopied] = useState(false);
+  const handleLanguageChange = useCallback((e) => {
+    setLanguage(e);
+    changeTranslationLanguage(e);
+  }, [setLanguage, changeTranslationLanguage]);
+
+  const LanguageSelectorBTN = useMemo(() => {
     return (
-      <div className="flex items-center justify-center lg:ml-0 ml-4 mt-4 xl:mt-0">
-        <div className="flex border-2 border-gray-850 p-2 rounded-md items-center justify-center">
-          <h1 className="text-white text-base ">{meetingId}</h1>
-          <button
-            className="ml-2"
-            onClick={() => {
-              navigator.clipboard.writeText(meetingId);
-              setIsCopied(true);
-              setTimeout(() => {
-                setIsCopied(false);
-              }, 3000);
-            }}
-          >
-            {isCopied ? (
-              <CheckIcon className="h-5 w-5 text-green-400" />
-            ) : (
-              <ClipboardIcon className="h-5 w-5 text-white" />
-            )}
-          </button>
-        </div>
-      </div>
+      <select
+        value={language}
+        onChange={(e) => handleLanguageChange(e.target.value)}
+        className="px-4 py-3 mt-5 bg-gray-650 rounded-xl text-white w-auto text-center pr-8"
+      >
+        <option value="" disabled>
+          Select your language
+        </option>
+        {LANGUAGES.map((lang) => (
+          <option key={lang.code} value={lang.code}>
+            {lang.name}
+          </option>
+        ))}
+      </select>
     );
-  };
+  }, [language, handleLanguageChange]);
+
 
   const tollTipEl = useRef();
   const isMobile = useIsMobile();
@@ -765,7 +981,7 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
       RAISE_HAND: "RAISE_HAND",
       RECORDING: "RECORDING",
       PIP: "PIP",
-      MEETING_ID_COPY: "MEETING_ID_COPY",
+      LANGUAGE_SELECTOR: "LANGUAGE_SELECTOR",
     }),
     []
   );
@@ -776,7 +992,7 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
     { icon: BottomBarButtonTypes.SCREEN_SHARE },
     { icon: BottomBarButtonTypes.CHAT },
     { icon: BottomBarButtonTypes.PARTICIPANTS },
-    { icon: BottomBarButtonTypes.MEETING_ID_COPY },
+    { icon: BottomBarButtonTypes.LANGUAGE_SELECTOR },
   ];
 
   return isMobile || isTab ? (
@@ -785,6 +1001,7 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
       style={{ height: bottomBarHeight }}
     >
       <LeaveBTN />
+      <TranscriptionBTN />
       <MicBTN />
       <WebCamBTN />
       <RecordingBTN />
@@ -825,11 +1042,10 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
                       {otherFeatures.map(({ icon }) => {
                         return (
                           <div
-                            className={`grid items-center justify-center ${
-                              icon === BottomBarButtonTypes.MEETING_ID_COPY
-                                ? "col-span-7 sm:col-span-5 md:col-span-3"
-                                : "col-span-4 sm:col-span-3 md:col-span-2"
-                            }`}
+                            className={`grid items-center justify-center ${icon === BottomBarButtonTypes.LANGUAGE_SELECTOR
+                              ? "col-span-7 sm:col-span-5 md:col-span-3"
+                              : "col-span-4 sm:col-span-3 md:col-span-2"
+                              }`}
                           >
                             {icon === BottomBarButtonTypes.RAISE_HAND ? (
                               <RaiseHandBTN isMobile={isMobile} isTab={isTab} />
@@ -845,12 +1061,8 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
                                 isMobile={isMobile}
                                 isTab={isTab}
                               />
-                            ) : icon ===
-                              BottomBarButtonTypes.MEETING_ID_COPY ? (
-                              <MeetingIdCopyBTN
-                                isMobile={isMobile}
-                                isTab={isTab}
-                              />
+                            ) : icon === BottomBarButtonTypes.LANGUAGE_SELECTOR ? (
+                              LanguageSelectorBTN
                             ) : icon === BottomBarButtonTypes.PIP ? (
                               <PipBTN isMobile={isMobile} isTab={isTab} />
                             ) : null}
@@ -868,7 +1080,7 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
     </div>
   ) : (
     <div className="md:flex lg:px-2 xl:px-6 pb-2 px-2 hidden">
-      <MeetingIdCopyBTN />
+      {LanguageSelectorBTN}
 
       <div className="flex flex-1 items-center justify-center" ref={tollTipEl}>
         <RecordingBTN />
@@ -877,6 +1089,7 @@ export function BottomBar({ bottomBarHeight, setIsMeetingLeft }) {
         <WebCamBTN />
         <ScreenShareBTN isMobile={isMobile} isTab={isTab} />
         <PipBTN isMobile={isMobile} isTab={isTab} />
+        <TranscriptionBTN />
         <LeaveBTN />
       </div>
       <div className="flex items-center justify-center">

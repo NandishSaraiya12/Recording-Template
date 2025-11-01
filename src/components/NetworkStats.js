@@ -17,14 +17,15 @@ const NetworkStats = ({ }) => {
 
   const getNetworkStatistics = async () => {
     setError("no-error-loading");
-    try {
-      const options = { timeoutDuration: 45000 }; // Set a custom timeout of 45 seconds
-      const networkStats = await getNetworkStats(options);
-      if (networkStats) {
-        setError("no-error");
-      }
-      setDownloadSpeed(networkStats["downloadSpeed"]);
-      setUploadSpeed(networkStats["uploadSpeed"])
+    try { 
+      //const {downloadSpeed,uploadSpeed} = await getNetworkStats({ timeoutDuration: 2000 });
+      const { uploadSpeed, downloadSpeed } = await getNetworkStats({
+        timeoutDuration: 2000
+      });
+      setError("no-error");
+     console.log("DOW",downloadSpeed,uploadSpeed)
+     setDownloadSpeed(downloadSpeed)
+     setUploadSpeed(uploadSpeed)
     } catch (ex) {
       if (ex === "Not able to get NetworkStats due to no Network") {
         setError("no-wifi")

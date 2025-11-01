@@ -62,3 +62,22 @@ export const validateMeeting = async ({ roomId, token }) => {
   }
 
 };
+
+export const startParticipantRecording = async ({roomId,participantId,token}) => {
+  const options = {
+    method: "POST",
+    headers: {
+      Authorization: token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      roomId,
+      participantId
+    }),
+  };
+
+  const url = `https://api.videosdk.live/v2/recordings/participant/start`;
+  const response = await fetch(url, options);
+  const data = await response.json();
+  console.log(data);
+};

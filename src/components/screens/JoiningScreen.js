@@ -21,6 +21,8 @@ import { useMeetingAppContext } from "../../MeetingAppContextDef";
 export function JoiningScreen({
   participantName,
   setParticipantName,
+  language,
+  setLanguage,
   setMeetingId,
   setToken,
   setMicOn,

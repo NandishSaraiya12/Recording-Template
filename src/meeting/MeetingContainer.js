@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createRef, memo } from "react";
+import React, { useState, useEffect, useRef, createRef, memo, use } from "react";
 import { Constants, useMeeting, useParticipant, usePubSub } from "@videosdk.live/react-sdk";
 import { BottomBar } from "./components/BottomBar";
 import { SidebarConatiner } from "../components/sidebar/SidebarContainer";
@@ -12,10 +12,15 @@ import useIsTab from "../hooks/useIsTab";
 import { useMediaQuery } from "react-responsive";
 import { toast } from "react-toastify";
 import { useMeetingAppContext } from "../MeetingAppContextDef";
+import RealTimeCaptionProvider from "../components/RealTimeCaptionProvider"
 
 export function MeetingContainer({
+  token,
+  meetingId,
   onMeetingLeave,
   setIsMeetingLeft,
+  language,
+  setLanguage
 }) {
   const {
     setSelectedMic,
@@ -24,6 +29,8 @@ export function MeetingContainer({
   } = useMeetingAppContext();
 
   const [participantsData, setParticipantsData] = useState([]);
+
+
 
   const ParticipantMicStream = memo(({ participantId }) => {
     // Individual hook for each participant
@@ -53,6 +60,7 @@ export function MeetingContainer({
   const [localParticipantAllowedJoin, setLocalParticipantAllowedJoin] = useState(null);
   const [meetingErrorVisible, setMeetingErrorVisible] = useState(false);
   const [meetingError, setMeetingError] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState(null);
 
   const mMeetingRef = useRef();
   const containerRef = createRef();
@@ -126,6 +134,15 @@ export function MeetingContainer({
   function onParticipantJoined(participant) {
     // Change quality to low, med or high based on resolution
     participant && participant.setQuality("high");
+    //mMeeting.enableAdaptiveSubscriptions()
+  }
+
+  function onRecordingStarted() {
+    console.log("recording started")
+  }
+
+  function onRecordingStopped() {
+    console.log("recording stopped")
   }
 
 
@@ -181,7 +198,7 @@ export function MeetingContainer({
     onParticipantJoined,
     onEntryResponded,
     onMeetingJoined,
-    onMeetingStateChanged: ({state}) => {
+    onMeetingStateChanged: ({ state }) => {
       toast(`Meeting is in ${state} state`, {
         position: "bottom-left",
         autoClose: 4000,
@@ -196,6 +213,8 @@ export function MeetingContainer({
     onMeetingLeft,
     onError: _handleOnError,
     onRecordingStateChanged: _handleOnRecordingStateChanged,
+    onRecordingStarted,
+    onRecordingStopped,
   });
 
   const isPresenting = mMeeting.presenterId ? true : false;
@@ -244,6 +263,9 @@ export function MeetingContainer({
 
       participantRaisedHand(senderId);
     },
+    onOldMessagesReceived: (oldMessages) => {
+      console.log("[RAISE_HAND] old messages", oldMessages?.length || 0);
+    },
   });
 
   usePubSub("CHAT", {
@@ -258,6 +280,11 @@ export function MeetingContainer({
         new Audio(
           `https://static.videosdk.live/prebuilt/notification.mp3`
         ).play();
+        if (message === 'close') {
+          setIframeSrc(null);
+        } else {
+          setIframeSrc(message)
+        }
 
         toast(
           `${trimSnackBarText(
@@ -276,10 +303,12 @@ export function MeetingContainer({
         );
       }
     },
+    onOldMessagesReceived: (oldMessages) => {
+      console.log("[CHAT] old messages", oldMessages?.length || 0);
+    },
   });
 
-  return (
-    <div className="fixed inset-0">
+  return ( <div className="fixed inset-0">
       <div ref={containerRef} className="h-full flex flex-col bg-gray-800">
         {typeof localParticipantAllowedJoin === "boolean" ? (
           localParticipantAllowedJoin ? (
@@ -304,10 +333,30 @@ export function MeetingContainer({
                 />
               </div>
 
+              {iframeSrc && (
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[9999]"
+                >
+                  <div className="relative w-[90vw] h-[85vh] bg-black rounded-xl overflow-hidden shadow-2xl">
+                    <iframe
+                      title="Portfolio"
+                      src={iframeSrc}
+                      className="w-full h-full border-none rounded-lg"
+                      allow="fullscreen"
+                    />
+                  </div>
+                </div>
+              )}
+
               <BottomBar
+                token={token}
+                meetingId={meetingId}
                 bottomBarHeight={bottomBarHeight}
                 setIsMeetingLeft={setIsMeetingLeft}
+                language={language}
+                setLanguage={setLanguage}
               />
+              <RealTimeCaptionProvider />
             </>
           ) : (
             <></>

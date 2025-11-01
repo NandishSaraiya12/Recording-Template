@@ -50,6 +50,9 @@ export const nameTructed = (name, tructedLength) => {
 export const sideBarModes = {
   PARTICIPANTS: "PARTICIPANTS",
   CHAT: "CHAT",
+  POLL: "POLL",
+  LEADERBOARD: "LEADERBOARD",
+  BLOCKED: "BLOCKED",
 };
 
 export function debounce(func, wait, immediate) {

@@ -3,8 +3,12 @@ import { useContext, createContext, useState, useEffect, useRef } from "react";
 export const MeetingAppContext = createContext();
 
 export const useMeetingAppContext = () => useContext(MeetingAppContext);
+export const appThemes = {
+  DARK: "DARK",
+  LIGHT: "LIGHT",
+ };
 
-export const MeetingAppProvider = ({ children }) => {
+export const MeetingAppProvider = ({ children, language }) => {
   const [selectedMic, setSelectedMic] = useState({ id: null, label: null });
   const [selectedWebcam, setSelectedWebcam] = useState({ id: null, label: null });
   const [selectedSpeaker, setSelectedSpeaker] = useState({ id: null, label: null });
@@ -77,6 +81,7 @@ export const MeetingAppProvider = ({ children }) => {
         pipMode,
         isCameraPermissionAllowed,
         isMicrophonePermissionAllowed,
+        language,
 
         // setters
 

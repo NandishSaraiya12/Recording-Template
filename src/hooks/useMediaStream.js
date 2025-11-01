@@ -4,13 +4,14 @@ const useMediaStream = () => {
 
   const getVideoTrack = async ({ webcamId, encoderConfig }) => {
     try {
-      const track = await createCameraVideoTrack({
-        cameraId: webcamId ,
-        encoderConfig: encoderConfig ?  encoderConfig :"h540p_w960p",
-        optimizationMode: "motion",
-        multiStream: false,
-      });
-
+      const track = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: {
+   exact: webcamId ? webcamId : undefined,
+},
+      },
+    });
+      console.log("here",track)
       return track;
     } catch(error) {
       return null;

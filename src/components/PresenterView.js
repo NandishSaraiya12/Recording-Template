@@ -51,9 +51,10 @@ export function PresenterView({ height }) {
     <div
       className={` bg-gray-750 rounded m-2 relative overflow-hidden w-full h-[${height - "xl:p-6 lg:p-[52px] md:p-[26px] p-1"
         }] `}
+      data-presenter-view="true"
     >
       <audio autoPlay playsInline controls={false} ref={audioPlayer} />
-      <div className={"video-contain absolute h-full w-full"}>
+      <div className={"video-contain absolute h-full w-full"} data-screen-share-container="true">
 
         <VideoPlayer
           participantId={presenterId} // Required
@@ -65,7 +66,7 @@ export function PresenterView({ height }) {
           className="h-full"
           classNameVideo="h-full"
           videoStyle={{
-            filter: isLocal ? "blur(1rem)" : undefined,
+            filter: undefined,
           }}
         />
 
@@ -92,7 +93,7 @@ export function PresenterView({ height }) {
         </div>
         {isLocal ? (
           <>
-            <div className="p-10 rounded-2xl flex flex-col items-center justify-center absolute top-1/2 left-1/2 bg-gray-750 transform -translate-x-1/2 -translate-y-1/2">
+            {/* <div className="p-10 rounded-2xl flex flex-col items-center justify-center absolute top-1/2 left-1/2 bg-gray-750 transform -translate-x-1/2 -translate-y-1/2">
               <ScreenShareIcon
                 style={{ height: 48, width: 48, color: "white" }}
               />
@@ -112,7 +113,7 @@ export function PresenterView({ height }) {
                   STOP PRESENTING
                 </button>
               </div>
-            </div>
+            </div> */}
             <CornerDisplayName
               {...{
                 isLocal,

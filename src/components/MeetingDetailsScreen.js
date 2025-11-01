@@ -1,6 +1,7 @@
 import { CheckIcon, ClipboardIcon } from "@heroicons/react/24/outline";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
+import { LANGUAGES } from "../utils/languages";
 
 export function MeetingDetailsScreen({
   onClickJoin,

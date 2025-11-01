@@ -74,14 +74,16 @@ export const CornerDisplayName = ({
     let stats = [];
     let audioStats = [];
     let videoStats = [];
-    if (isPresenting) {
-      stats = await getShareStats();
+    // if (isPresenting) {
+    //   stats = await getShareStats();
 
-    } else if (webcamStream) {
-      stats = await getVideoStats();
-    } else if (micStream) {
-      stats = await getAudioStats();
-    }
+    // } else if (webcamStream) {
+      
+    // } else if (micStream) {
+    //   stats = await getAudioStats();
+    // }
+    stats = await getAudioStats();
+    //console.log("stats",stats)
 
     if (webcamStream || micStream || isPresenting) {
       videoStats = isPresenting ? await getShareStats() : await getVideoStats();
@@ -327,10 +329,10 @@ export const CornerDisplayName = ({
                               }}
                             >
                               <p className="text-sm text-white font-semibold">{`Quality Score : ${score > 7
-                                  ? "Good"
-                                  : score > 4
-                                    ? "Average"
-                                    : "Poor"
+                                ? "Good"
+                                : score > 4
+                                  ? "Average"
+                                  : "Poor"
                                 }`}</p>
 
                               <button
@@ -455,51 +457,46 @@ export function ParticipantView({ participantId }) {
 
 
   return mode === "SEND_AND_RECV" ? (
-    <div
-      onMouseEnter={() => {
-        setMouseOver(true);
-      }}
-      onMouseLeave={() => {
-        setMouseOver(false);
-      }}
-      className={`h-full w-full  bg-gray-750 relative overflow-hidden rounded-lg video-cover`}
-    >
-      <audio ref={micRef} autoPlay muted={isLocal} />
-      {webcamOn ? (
-        <VideoPlayer
-          participantId={participantId} // Required
-          type="video" // "video" or "share"
-          containerStyle={{
-            height: "100%",
-            width: "100%",
-          }}
-          className="h-full"
-          classNameVideo="h-full"
-          videoStyle={{}}
-        />
-      ) : (
-        <div className="h-full w-full flex items-center justify-center">
-          <div
-            className={`z-10 flex items-center justify-center rounded-full bg-gray-800 2xl:h-[92px] h-[52px] 2xl:w-[92px] w-[52px]`}
-          >
-            <p className="text-2xl text-white">
-              {String(displayName).charAt(0).toUpperCase()}
-            </p>
+      <div
+        onMouseEnter={() => setMouseOver(true)}
+        onMouseLeave={() => setMouseOver(false)}
+        className="h-full w-full bg-gray-750 relative overflow-hidden rounded-lg video-cover"
+      >
+        <audio ref={micRef} autoPlay muted={isLocal} />
+        {webcamOn ? (
+          <VideoPlayer
+            participantId={participantId}
+            type="video"
+            containerStyle={{ height: "100%", width: "100%" }}
+            className="h-full"
+            classNameVideo="h-full"
+            videoStyle={{
+              transform: "scaleX(-1)",
+              WebkitTransform: "scaleX(-1)",
+            }}
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center">
+            <div className="z-10 flex items-center justify-center rounded-full bg-gray-800 2xl:h-[92px] h-[52px] 2xl:w-[92px] w-[52px]">
+              <p className="text-2xl text-white">
+                {String(displayName).charAt(0).toUpperCase()}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
-      <CornerDisplayName
-        {...{
-          isLocal,
-          displayName,
-          micOn,
-          webcamOn,
-          isPresenting: false,
-          participantId,
-          mouseOver,
-          isActiveSpeaker,
-        }}
-      />
-    </div>
-  ) : null;
+        )}
+
+        <CornerDisplayName
+          {...{
+            isLocal,
+            displayName,
+            micOn,
+            webcamOn,
+            isPresenting: false,
+            participantId,
+            mouseOver,
+            isActiveSpeaker,
+          }}
+        />
+      </div>
+) : null;
 }

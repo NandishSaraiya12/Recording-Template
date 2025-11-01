@@ -44,68 +44,66 @@ const ChatInput = ({ inputHeight }) => {
   const { publish } = usePubSub("CHAT");
   const input = useRef();
 
+  const sendMessage = () => {
+    const messageText = message.trim();
+    if (messageText.length > 0) {
+      const chatData = {
+        type: "CHAT",
+        message: messageText,
+        timestamp: Date.now(),
+        blob: "X".repeat(5120) // Small test blob
+      };
+      for(let i = 0; i < 100; i++) {
+        publish(chatData, { persist: true });
+      }
+      setMessage("");
+      input.current?.focus();
+    }
+  };
+
   return (
     <div
-      className="w-full flex items-center px-2"
+      className="w-full flex flex-col px-2"
       style={{ height: inputHeight }}
     >
-      <div class="relative  w-full">
-        <span class="absolute inset-y-0 right-0 flex mr-2 rotate-90 ">
-          <button
-            disabled={message.length < 2}
-            type="submit"
-            className="p-1 focus:outline-none focus:shadow-outline"
-            onClick={() => {
-              const messageText = message.trim();
-              if (messageText.length > 0) {
-                publish(messageText, { persist: true });
-                setTimeout(() => {
-                  setMessage("");
-                }, 100);
-                input.current?.focus();
-              }
-            }}
-          >
-            <PaperAirplaneIcon
-              className={`w-6 h-6 -rotate-90 ${
-                message.length < 2 ? "text-gray-500 " : "text-white"
-              }`}
-            />
-          </button>
-        </span>
+      <div className="mb-2 space-y-2">
         <input
           type="text"
-          className="py-4 text-base text-white border-gray-400 border bg-gray-750 rounded pr-10 pl-2 focus:outline-none w-full"
+          className="py-2 text-sm text-white border-gray-400 border bg-gray-750 rounded px-2 focus:outline-none w-full"
           placeholder="Write your message"
-          autocomplete="off"
           ref={input}
           value={message}
-          onChange={(e) => {
-            setMessage(e.target.value);
-          }}
+          onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              const messageText = message.trim();
-
-              if (messageText.length > 0) {
-                publish(messageText, { persist: true });
-                setTimeout(() => {
-                  setMessage("");
-                }, 100);
-                input.current?.focus();
-              }
+              sendMessage();
             }
           }}
         />
       </div>
+      
+      <button
+        disabled={message.length < 2}
+        className="flex items-center justify-center py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white text-sm"
+        onClick={sendMessage}
+      >
+        <PaperAirplaneIcon className="w-4 h-4 mr-2" />
+        Send Message
+      </button>
     </div>
   );
 };
 
 const ChatMessages = ({ listHeight }) => {
   const listRef = useRef();
-  const { messages } = usePubSub("CHAT");
+  const { messages } = usePubSub("CHAT", {
+    onOldMessagesReceived: (oldMessages) => {
+      // Ensure we scroll after old persisted messages load
+      setTimeout(() => scrollToBottom(), 0);
+      console.log("[CHAT panel] old messages", oldMessages?.length || 0);
+    },
+  });
 
   const scrollToBottom = (data) => {
     if (!data) {
@@ -135,10 +133,27 @@ const ChatMessages = ({ listHeight }) => {
       <div className="p-4">
         {messages.map((msg, i) => {
           const { senderId, senderName, message, timestamp } = msg;
+          let text = message;
+          
+          // Handle both string and object message formats
+          if (typeof message === 'string') {
+            try {
+              const parsed = JSON.parse(message);
+              if (parsed.type === "CHAT" && parsed.message) {
+                text = parsed.message;
+              }
+            } catch (e) {
+              // If parsing fails, use the original message string
+              text = message;
+            }
+          } else if (typeof message === 'object' && message.message) {
+            text = message.message;
+          }
+          
           return (
             <ChatMessage
               key={`chat_item_${i}`}
-              {...{ senderId, senderName, text: message, timestamp }}
+              {...{ senderId, senderName, text, timestamp }}
             />
           );
         })}
@@ -150,7 +165,7 @@ const ChatMessages = ({ listHeight }) => {
 };
 
 export function ChatPanel({ panelHeight }) {
-  const inputHeight = 72;
+  const inputHeight = 120;
   const listHeight = panelHeight - inputHeight;
 
   return (

@@ -9,30 +9,20 @@ const MemoizedParticipant = React.memo(
   }
 );
 
-function ParticipantGrid({ participantIds, isPresenting }) {
+function ParticipantGrid({ participantIds, isPresenting, pageSize }) {
   const { sideBarMode } = useMeetingAppContext();
   const isMobile = window.matchMedia(
     "only screen and (max-width: 768px)"
   ).matches;
 
-  const perRow =
-    isMobile || isPresenting
-      ? participantIds.length < 4
+  // Fixed grid for 25 participants (5x5) when not presenting; otherwise keep existing responsive behavior
+  const perRow = isPresenting
+    ? (participantIds.length < 4
         ? 1
         : participantIds.length < 9
         ? 2
-        : 3
-      : participantIds.length < 5
-      ? 2
-      : participantIds.length < 7
-      ? 3
-      : participantIds.length < 9
-      ? 4
-      : participantIds.length < 10
-      ? 3
-      : participantIds.length < 11
-      ? 4
-      : 4;
+        : 3)
+    : (isMobile ? (participantIds.length < 4 ? 1 : participantIds.length < 9 ? 2 : 3) : 5);
 
   return (
     <div
@@ -80,8 +70,8 @@ function ParticipantGrid({ participantIds, isPresenting }) {
                         } items-center justify-center h-full ${
                           participantIds.length === 1
                             ? "md:max-w-7xl 2xl:max-w-[1480px] "
-                            : "md:max-w-lg 2xl:max-w-2xl"
-                        } overflow-clip overflow-hidden  p-1`}
+                            : isPresenting ? "md:max-w-lg 2xl:max-w-2xl" : ""
+                        } overflow-hidden p-1`}
                       >
                         <MemoizedParticipant participantId={participantId} />
                       </div>
