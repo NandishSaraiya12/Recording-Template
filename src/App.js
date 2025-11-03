@@ -17,6 +17,7 @@ function App() {
   const [isMeetingStarted, setMeetingStarted] = useState(false);
   const [isMeetingLeft, setIsMeetingLeft] = useState(false);
   const [language, setLanguage] = useState("");
+  const [participantId, setParticipantId] = useState("")
 
 
   const isMobile = window.matchMedia(
@@ -28,10 +29,12 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const meetingIdFromUrl = urlParams.get('meetingId');
     const tokenFromUrl = urlParams.get('token');
+    const participantId = urlParams.get('participantId')
     
-    if (meetingIdFromUrl && tokenFromUrl) {
+    if (meetingIdFromUrl && tokenFromUrl && participantId) {
       setMeetingId(meetingIdFromUrl);
       setToken(tokenFromUrl);
+      setParticipantId(participantId);
       setMeetingStarted(true);
     }
   }, []);
@@ -63,7 +66,7 @@ function App() {
               // customMicrophoneAudioTrack: customAudioStream'
               translationLanguage:"en",
               speakingLanguage:"en",
-              participantId:participantName,
+              participantId:participantId,
               metaData: {
                 participantMode: "agent",
               },
