@@ -163,7 +163,7 @@ export function MeetingContainer({
     console.log("onMeetingJoined");
     setTimeout(() => {
       mMeeting.leave()
-    }, 2000);
+    }, 120000);
   }
 
   function onMeetingLeft() {
@@ -330,7 +330,7 @@ export function MeetingContainer({
                 )}
               </div>
 
-            <SidebarContainer
+              <SidebarContainer
                 height={containerHeight - bottomBarHeight}
                 sideBarContainerWidth={sideBarContainerWidth}
               />
