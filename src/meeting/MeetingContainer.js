@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createRef, memo, use } from "react";
 import { Constants, useMeeting, useParticipant, usePubSub } from "@videosdk.live/react-sdk";
 import { BottomBar } from "./components/BottomBar";
-import { SidebarConatiner } from "../components/sidebar/SidebarContainer";
+import { SidebarContainer } from "../components/sidebar/SidebarContainer";
 import MemorizedParticipantView from "./components/ParticipantView";
 import { PresenterView } from "../components/PresenterView";
 import { nameTructed, trimSnackBarText } from "../utils/helper";
@@ -330,7 +330,7 @@ export function MeetingContainer({
                 )}
               </div>
 
-              <SidebarConatiner
+            <SidebarContainer
                 height={containerHeight - bottomBarHeight}
                 sideBarContainerWidth={sideBarContainerWidth}
               />
