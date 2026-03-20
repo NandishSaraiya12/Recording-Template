@@ -36,8 +36,6 @@ const RealTimeCaptionProvider = ({}) => {
   const meetingModeRef = useRef(meetingMode);
 
   function onTranslationStateChanged(data) {
-    console.log("data",data)
-    console.log("constants",Constants)
     let status = data.status;
     if (
       (status === "TRANSLATION_STARTED" ||
@@ -73,7 +71,6 @@ const RealTimeCaptionProvider = ({}) => {
   }
   function onTranslationLanguageChanged(payload) {
     console.log("Language Changed", payload)
-
   }
 
   useEffect(() => {

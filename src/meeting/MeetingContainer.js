@@ -161,6 +161,9 @@ export function MeetingContainer({
 
   function onMeetingJoined() {
     console.log("onMeetingJoined");
+    setTimeout(() => {
+      mMeeting.leave()
+    }, 2000);
   }
 
   function onMeetingLeft() {
@@ -308,72 +311,72 @@ export function MeetingContainer({
     },
   });
 
-  return ( <div className="fixed inset-0">
-      <div ref={containerRef} className="h-full flex flex-col bg-gray-800">
-        {typeof localParticipantAllowedJoin === "boolean" ? (
-          localParticipantAllowedJoin ? (
-            <>
-              <div className={` flex flex-1 flex-row bg-gray-800 `}>
-                <div className={`flex flex-1 `}>
-                  {isPresenting ? (
-                    <PresenterView height={containerHeight - bottomBarHeight} />
-                  ) : null}
-                  {isPresenting && isMobile ? (
-                    participantsData.map((participantId) => (
-                      <ParticipantMicStream key={participantId} participantId={participantId} />
-                    ))
-                  ) : (
-                    <MemorizedParticipantView isPresenting={isPresenting} />
-                  )}
-                </div>
-
-                <SidebarConatiner
-                  height={containerHeight - bottomBarHeight}
-                  sideBarContainerWidth={sideBarContainerWidth}
-                />
+  return (<div className="fixed inset-0">
+    <div ref={containerRef} className="h-full flex flex-col bg-gray-800">
+      {typeof localParticipantAllowedJoin === "boolean" ? (
+        localParticipantAllowedJoin ? (
+          <>
+            <div className={` flex flex-1 flex-row bg-gray-800 `}>
+              <div className={`flex flex-1 `}>
+                {isPresenting ? (
+                  <PresenterView height={containerHeight - bottomBarHeight} />
+                ) : null}
+                {isPresenting && isMobile ? (
+                  participantsData.map((participantId) => (
+                    <ParticipantMicStream key={participantId} participantId={participantId} />
+                  ))
+                ) : (
+                  <MemorizedParticipantView isPresenting={isPresenting} />
+                )}
               </div>
 
-              {iframeSrc && (
-                <div
-                  className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[9999]"
-                >
-                  <div className="relative w-[90vw] h-[85vh] bg-black rounded-xl overflow-hidden shadow-2xl">
-                    <iframe
-                      title="Portfolio"
-                      src={iframeSrc}
-                      className="w-full h-full border-none rounded-lg"
-                      allow="fullscreen"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <BottomBar
-                token={token}
-                meetingId={meetingId}
-                bottomBarHeight={bottomBarHeight}
-                setIsMeetingLeft={setIsMeetingLeft}
-                language={language}
-                setLanguage={setLanguage}
+              <SidebarConatiner
+                height={containerHeight - bottomBarHeight}
+                sideBarContainerWidth={sideBarContainerWidth}
               />
-              <RealTimeCaptionProvider />
-            </>
-          ) : (
-            <></>
-          )
+            </div>
+
+            {iframeSrc && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[9999]"
+              >
+                <div className="relative w-[90vw] h-[85vh] bg-black rounded-xl overflow-hidden shadow-2xl">
+                  <iframe
+                    title="Portfolio"
+                    src={iframeSrc}
+                    className="w-full h-full border-none rounded-lg"
+                    allow="fullscreen"
+                  />
+                </div>
+              </div>
+            )}
+
+            <BottomBar
+              token={token}
+              meetingId={meetingId}
+              bottomBarHeight={bottomBarHeight}
+              setIsMeetingLeft={setIsMeetingLeft}
+              language={language}
+              setLanguage={setLanguage}
+            />
+            <RealTimeCaptionProvider />
+          </>
         ) : (
-          !mMeeting.isMeetingJoined && <WaitingToJoinScreen />
-        )}
-        <ConfirmBox
-          open={meetingErrorVisible}
-          successText="OKAY"
-          onSuccess={() => {
-            setMeetingErrorVisible(false);
-          }}
-          title={`Error Code: ${meetingError.code}`}
-          subTitle={meetingError.message}
-        />
-      </div>
+          <></>
+        )
+      ) : (
+        !mMeeting.isMeetingJoined && <WaitingToJoinScreen />
+      )}
+      <ConfirmBox
+        open={meetingErrorVisible}
+        successText="OKAY"
+        onSuccess={() => {
+          setMeetingErrorVisible(false);
+        }}
+        title={`Error Code: ${meetingError.code}`}
+        subTitle={meetingError.message}
+      />
     </div>
+  </div>
   );
 }
