@@ -32,7 +32,7 @@ function App() {
     const participantIdFromUrl = urlParams.get('participantId');
     const participantNameFromUrl = urlParams.get('participantName');
 
-    if (true) {
+    if (meetingIdFromUrl && tokenFromUrl) {
       setMeetingId(meetingIdFromUrl);
       setToken(tokenFromUrl);
       setParticipantId(participantIdFromUrl);
