@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, createRef, memo, use } from "react";
-import { Constants, useMeeting, useParticipant, usePubSub } from "@videosdk.live/react-sdk";
+import { Constants, useMeeting, useParticipant, usePubSub, useWhiteboard } from "@videosdk.live/react-sdk";
 import { BottomBar } from "./components/BottomBar";
 import { SidebarContainer } from "../components/sidebar/SidebarContainer";
 import MemorizedParticipantView from "./components/ParticipantView";
@@ -222,6 +222,10 @@ export function MeetingContainer({
 
   const isPresenting = mMeeting.presenterId ? true : false;
 
+  const { whiteboardUrl } = useWhiteboard();
+  // Screen share takes priority over the whiteboard if both are active
+  const isWhiteboardActive = !!whiteboardUrl && !isPresenting;
+
   useEffect(() => {
     const debounceTimeout = setTimeout(() => {
       const participantIds = Array.from(mMeeting.participants.keys());
@@ -321,12 +325,21 @@ export function MeetingContainer({
                 {isPresenting ? (
                   <PresenterView height={containerHeight - bottomBarHeight} />
                 ) : null}
-                {isPresenting && isMobile ? (
+                {isWhiteboardActive ? (
+                  <div className="bg-white rounded m-2 relative overflow-hidden w-full">
+                    <iframe
+                      title="Whiteboard"
+                      src={whiteboardUrl}
+                      className="w-full h-full border-none pointer-events-none"
+                    />
+                  </div>
+                ) : null}
+                {(isPresenting || isWhiteboardActive) && isMobile ? (
                   participantsData.map((participantId) => (
                     <ParticipantMicStream key={participantId} participantId={participantId} />
                   ))
                 ) : (
-                  <MemorizedParticipantView isPresenting={isPresenting} />
+                  <MemorizedParticipantView isPresenting={isPresenting || isWhiteboardActive} />
                 )}
               </div>
 
