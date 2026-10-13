@@ -1,5 +1,5 @@
 import { MeetingProvider } from "@videosdk.live/react-sdk";
-import { StrictMode, useEffect } from "react";
+import { useEffect } from "react";
 import { useState } from "react";
 import { MeetingAppProvider } from "./MeetingAppContextDef";
 import { MeetingContainer } from "./meeting/MeetingContainer";

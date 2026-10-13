@@ -216,6 +216,7 @@ export const CornerDisplayName = ({
     return () => {
       if (statsIntervalIdRef.current) clearInterval(statsIntervalIdRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webcamStream, micStream, screenShareStream]);
 
   return (

@@ -1,4 +1,4 @@
-import { createCameraVideoTrack , createMicrophoneAudioTrack } from "@videosdk.live/react-sdk";
+import { createMicrophoneAudioTrack } from "@videosdk.live/react-sdk";
 
 const useMediaStream = () => {
 

@@ -7,7 +7,7 @@ import WifiOff from "../icons/NetworkStats/WifiOff";
 import { useEffect, useState } from "react";
 import useIsMobile from "../hooks/useIsMobile";
 
-const NetworkStats = ({ }) => {
+const NetworkStats = () => {
   const [error, setError] = useState("no-error-loading")
   const [uploadSpeed, setUploadSpeed] = useState(null)
   const [downloadSpeed, setDownloadSpeed] = useState(null)

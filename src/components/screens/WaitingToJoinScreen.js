@@ -4,11 +4,12 @@ import Lottie from "lottie-react";
 import useIsTab from "../../hooks/useIsTab";
 import useIsMobile from "../../hooks/useIsMobile";
 
+const waitingMessages = [
+  { index: 0, text: "Creating a room for you..." },
+  { index: 1, text: "Almost there..." },
+];
+
 const WaitingToJoinScreen = () => {
-  const waitingMessages = [
-    { index: 0, text: "Creating a room for you..." },
-    { index: 1, text: "Almost there..." },
-  ];
   const [message, setMessage] = useState(waitingMessages[0]);
 
   const intervalRef = useRef(null);

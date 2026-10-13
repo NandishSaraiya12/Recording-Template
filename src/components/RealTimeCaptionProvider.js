@@ -3,15 +3,14 @@ import {
   useMeeting,
   useTranslation
 } from "@videosdk.live/react-sdk";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { appThemes, useMeetingAppContext } from "../MeetingAppContextDef";
 import useIsMobile from "../hooks/useIsMobile";
 import useIsTab from "../hooks/useIsTab";
-import { useMediaQuery } from "react-responsive";
 import { Typography, useTheme } from "@mui/material";
 import { toast } from "react-toastify";
 
-const RealTimeCaptionProvider = ({}) => {
+const RealTimeCaptionProvider = () => {
   const mMeeting = useMeeting({});
   useTranslation({
     onTranslationStateChanged,
@@ -20,20 +19,12 @@ const RealTimeCaptionProvider = ({}) => {
   });
   const [transcription, setTranscription] = useState();
 
-  const {
-    participantCanToggleRealtimeTranscription,
-    notificationAlertsEnabled,
-    meetingMode,
-    appTheme,
-    language:lang
-  } = useMeetingAppContext();
+  const { appTheme } = useMeetingAppContext();
 
   const isMobile = useIsMobile();
   const isTab = useIsTab();
-  const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
   const theme = useTheme();
 
-  const meetingModeRef = useRef(meetingMode);
 
   function onTranslationStateChanged(data) {
     let status = data.status;
@@ -75,7 +66,7 @@ const RealTimeCaptionProvider = ({}) => {
 
   useEffect(() => {
     if (
-      mMeeting.translationState ==
+      mMeeting.translationState ===
       "TRANSLATION_STOPPING"
     ) {
       setTranscription(null);

@@ -8,8 +8,6 @@ function ParticipantsViewer({ isPresenting }) {
     pinnedParticipants,
     activeSpeakerId,
     localParticipant,
-    localScreenShareOn,
-    presenterId,
   } = useMeeting();
 
   const [currentPage, setCurrentPage] = useState(0);
@@ -46,8 +44,7 @@ function ParticipantsViewer({ isPresenting }) {
     participants,
     activeSpeakerId,
     pinnedParticipants,
-    presenterId,
-    localScreenShareOn,
+    localParticipant.id,
   ]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(orderedIds.length / pageSize)), [orderedIds.length, pageSize]);

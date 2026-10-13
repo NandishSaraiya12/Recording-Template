@@ -41,6 +41,7 @@ export const MeetingAppProvider = ({ children, language }) => {
 
     useEffect(() => {
       raisedHandsParticipantsRef.current = raisedHandsParticipants;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [raisedHandsParticipants]);
 
     const _handleRemoveOld = () => {

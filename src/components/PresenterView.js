@@ -1,8 +1,6 @@
 import { useMeeting, useParticipant, VideoPlayer } from "@videosdk.live/react-sdk";
-import { useEffect, useMemo, useRef } from "react";
-import ReactPlayer from "react-player";
+import { useEffect, useRef } from "react";
 import MicOffSmallIcon from "../icons/MicOffSmallIcon";
-import ScreenShareIcon from "../icons/ScreenShareIcon";
 import SpeakerIcon from "../icons/SpeakerIcon";
 import { nameTructed } from "../utils/helper";
 import { CornerDisplayName } from "./ParticipantView";

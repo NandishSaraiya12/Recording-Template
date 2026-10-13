@@ -134,15 +134,18 @@ export function JoiningScreen({
 
   useEffect(() => {
     getCameraDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCameraPermissionAllowed]);
 
   useEffect(() => {
     getAudioDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMicrophonePermissionAllowed]);
 
   useEffect(() => {
     checkMediaPermission();
     return () => { };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const _toggleWebcam = () => {
@@ -371,6 +374,7 @@ export function JoiningScreen({
 
   useEffect(() => {
     getAudioDevices()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const ButtonWithTooltip = ({ onClick, onState, OnIcon, OffIcon }) => {

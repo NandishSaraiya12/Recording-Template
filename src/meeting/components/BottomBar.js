@@ -3,15 +3,11 @@ import {
   useMeeting,
   usePubSub,
   useMediaDevice,
-  useParticipant,
-  useTranscription,
   useTranslation
 } from "@videosdk.live/react-sdk";
 import React, { Fragment, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { LANGUAGES } from "../../utils/languages";
 import {
-  ClipboardIcon,
-  CheckIcon,
   ChevronDownIcon,
   EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
@@ -41,7 +37,6 @@ import { Dialog, Popover, Transition } from "@headlessui/react";
 import { createPopper } from "@popperjs/core";
 import { useMeetingAppContext } from "../../MeetingAppContextDef";
 import useMediaStream from "../../hooks/useMediaStream";
-import { startParticipantRecording } from "../../api";
 import useIsTranslationRunning from "../../hooks/useIsTranscriptionRunning"
 import liveCC from "../../static/animations/live-cc.json";
 import OutlineIconTextButton from "../../components/OutlineIconTextButton";
@@ -49,13 +44,6 @@ import OutlineIconTextButton from "../../components/OutlineIconTextButton";
 function PipBTN({ isMobile, isTab }) {
   const { pipMode, setPipMode } = useMeetingAppContext();
   const { presenterId } = useMeeting();
-
-  const getRowCount = (length) => {
-    return length > 2 ? 2 : length > 0 ? 1 : 0;
-  };
-  const getColCount = (length) => {
-    return length < 2 ? 1 : length < 5 ? 2 : 3;
-  };
 
   const pipWindowRef = useRef(null);
   const togglePipMode = async () => {
@@ -712,8 +700,6 @@ export function BottomBar({ token, meetingId, bottomBarHeight, setIsMeetingLeft,
     const translationState = mMeeting.translationState;
 
     const isTranslationRunning = useIsTranslationRunning();
-    const { participantCanToggleRealtimeTranscription, appTheme } =
-      useMeetingAppContext();
     const { isRequestProcessing } = useMemo(
       () => ({
         isRequestProcessing:
@@ -845,7 +831,7 @@ export function BottomBar({ token, meetingId, bottomBarHeight, setIsMeetingLeft,
             isFocused={isTranslationRunning}
             focusIconColor={isTranslationRunning && "white"} // Add focus icon color like recording button
             lottieOption={
-              translationState ==
+              translationState ===
                 Constants.translationEvents.TRANSLATION_STARTING
                 ? defaultOptions
                 : null
