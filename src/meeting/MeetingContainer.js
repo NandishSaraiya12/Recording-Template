@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createRef, memo, use } from "react";
+import React, { useState, useEffect, useRef, createRef, memo } from "react";
 import { Constants, useMeeting, useParticipant, usePubSub, useWhiteboard } from "@videosdk.live/react-sdk";
 import { BottomBar } from "./components/BottomBar";
 import { SidebarContainer } from "../components/sidebar/SidebarContainer";
@@ -93,7 +93,7 @@ export function MeetingContainer({
     containerRef.current?.offsetWidth &&
       setContainerWidth(containerRef.current.offsetWidth);
 
-    window.addEventListener("resize", ({ target }) => {
+    window.addEventListener("resize", () => {
       containerRef.current?.offsetHeight &&
         setContainerHeight(containerRef.current.offsetHeight);
       containerRef.current?.offsetWidth &&
