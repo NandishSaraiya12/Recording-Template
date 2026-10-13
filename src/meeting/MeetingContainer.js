@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createRef, memo } from "react";
+import React, { useState, useEffect, useMemo, useRef, createRef, memo } from "react";
 import { Constants, useMeeting, useParticipant, usePubSub, useWhiteboard } from "@videosdk.live/react-sdk";
 import { BottomBar } from "./components/BottomBar";
 import { SidebarContainer } from "../components/sidebar/SidebarContainer";
@@ -226,6 +226,16 @@ export function MeetingContainer({
   // Screen share takes priority over the whiteboard if both are active
   const isWhiteboardActive = !!whiteboardUrl && !isPresenting;
 
+  const localParticipantId = mMeeting.localParticipant?.id;
+  const whiteboardSrc = useMemo(() => {
+    if (!whiteboardUrl) return null;
+    const url = new URL(whiteboardUrl);
+    const participantIdToFollow = "teacher";
+    if (localParticipantId) url.searchParams.set("participantId", localParticipantId);
+    if (participantIdToFollow) url.searchParams.set("participantIdToFollow", participantIdToFollow);
+    return url.toString();
+  }, [whiteboardUrl, localParticipantId]);
+
   useEffect(() => {
     const debounceTimeout = setTimeout(() => {
       const participantIds = Array.from(mMeeting.participants.keys());
@@ -329,7 +339,7 @@ export function MeetingContainer({
                   <div className="bg-white rounded m-2 relative overflow-hidden w-full">
                     <iframe
                       title="Whiteboard"
-                      src={whiteboardUrl}
+                      src={whiteboardSrc}
                       className="w-full h-full border-none pointer-events-none"
                     />
                   </div>
